@@ -8,6 +8,28 @@ const int analysis_time_s = 10;             //Initialize analysistime
 long jitter_array[(analysis_time_s*1000)];  //Create array for time analysis
 int iteration = 0;                       //Initialize iteration
 
+// Heavy computation function
+void heavy_computation() {
+    // 1. Large Matrix Multiplication (100x100)
+    double A[100][100], B[100][100], C[100][100] = {0};
+    for (int i = 0; i < 100; i++)
+        for (int j = 0; j < 100; j++) {
+            A[i][j] = i + j;
+            B[i][j] = i - j;
+        }
+    for (int i = 0; i < 100; i++)
+        for (int j = 0; j < 100; j++)
+            for (int k = 0; k < 100; k++)
+                C[i][j] += A[i][k] * B[k][j];
+
+    // 2. Intense Floating-Point Computation
+    double sum = 0.0;
+    for (int i = 1; i < 1000000; i++) {
+        sum += sqrt(i) + exp(i % 20);
+    }
+
+}
+
 
 void *start_routine(void *arg){
     
@@ -21,18 +43,22 @@ void *start_routine(void *arg){
         //Gets the actual time for jitter calculation
         clock_gettime(CLOCK_MONOTONIC,&start); 
 
-        
+        heavy_computation();
+
         //Increment timer
-        ts.tv_nsec += LOOPINTERVAL_MS*1000000; 
+        ts.tv_nsec += LOOPINTERVAL_MS*1000000L; 
         
         //Manage tv_nsec overflow
-        if (ts.tv_nsec >= 1000000000) { 
-            ts.tv_sec += 1;
-            ts.tv_nsec -= 1000000000;
-        }
+        if (ts.tv_nsec >= 1000000000L) { 
+            ts.tv_sec ++;
+            ts.tv_nsec -= 1000000000L;
+        }       
 
         //sleep until next time of ts
-        clock_nanosleep(CLOCK_MONOTONIC,TIMER_ABSTIME,&ts,NULL); 
+        int ret = clock_nanosleep(CLOCK_MONOTONIC,TIMER_ABSTIME,&ts,NULL); 
+        if (ret !=0){
+            perror("clock_nanosleep");
+        }
         clock_gettime(CLOCK_MONOTONIC,&end);
 
         //Calculates the jitter at runtime
@@ -43,7 +69,6 @@ void *start_routine(void *arg){
         jitter_array[i] = jitter_ns - (LOOPINTERVAL_MS*1000000L);
         iteration=i;
     };
-    printf("Exiting thread after %ld iterations\n",iteration);
     pthread_exit(NULL); //exit thread
     return NULL;
 }; 
