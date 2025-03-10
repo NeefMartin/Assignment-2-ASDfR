@@ -11,20 +11,20 @@ int iteration = 0;                       //Initialize iteration
 // Heavy computation function
 void heavy_computation() {
     // 1. Large Matrix Multiplication (100x100)
-    double A[100][100], B[100][100], C[100][100] = {0};
-    for (int i = 0; i < 100; i++)
-        for (int j = 0; j < 100; j++) {
+    double A[10][10], B[10][10], C[10][10] = {0};
+    for (int i = 0; i < 10; i++)
+        for (int j = 0; j < 10; j++) {
             A[i][j] = i + j;
             B[i][j] = i - j;
         }
-    for (int i = 0; i < 100; i++)
-        for (int j = 0; j < 100; j++)
-            for (int k = 0; k < 100; k++)
+    for (int i = 0; i < 10; i++)
+        for (int j = 0; j < 10; j++)
+            for (int k = 0; k < 10; k++)
                 C[i][j] += A[i][k] * B[k][j];
 
     // 2. Intense Floating-Point Computation
     double sum = 0.0;
-    for (int i = 1; i < 1000000; i++) {
+    for (int i = 1; i < 100000; i++) {
         sum += sqrt(i) + exp(i % 20);
     }
 

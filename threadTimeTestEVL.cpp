@@ -1,7 +1,13 @@
 #include <pthread.h>
 #include <time.h>
+#include <sys/types.h>
 #include <math.h>
 #include <stdio.h>
+#include <sched.h>
+#include <evl/sched.h>
+#include <evl/clock.h>
+#include <evl/thread.h>
+
 
 #define LOOPINTERVAL_MS 1
 
@@ -12,20 +18,20 @@ int iteration = 0;                       //Initialize iteration
 // Heavy computation function
 void heavy_computation() {
     // 1. Large Matrix Multiplication (100x100)
-    double A[100][100], B[100][100], C[100][100] = {0};
-    for (int i = 0; i < 100; i++)
-        for (int j = 0; j < 100; j++) {
+    double A[10][10], B[10][10], C[10][10] = {0};
+    for (int i = 0; i < 10; i++)
+        for (int j = 0; j < 10; j++) {
             A[i][j] = i + j;
             B[i][j] = i - j;
         }
-    for (int i = 0; i < 100; i++)
-        for (int j = 0; j < 100; j++)
-            for (int k = 0; k < 100; k++)
+    for (int i = 0; i < 10; i++)
+        for (int j = 0; j < 10; j++)
+            for (int k = 0; k < 10; k++)
                 C[i][j] += A[i][k] * B[k][j];
 
     // 2. Intense Floating-Point Computation
     double sum = 0.0;
-    for (int i = 1; i < 1000000; i++) {
+    for (int i = 1; i < 100000; i++) {
         sum += sqrt(i) + exp(i % 20);
     }
 
@@ -48,13 +54,13 @@ void *start_routine(void *arg){
     sched_setaffinity(0,sizeof(cpu_set_t),&cpu_set);
 
     //attach thread to EVL
-    efd=evl_attach_self("/Timer loop-%d",getpid());
+    efd=evl_attach_self("thread");
 
-    //Check if attachment was succesfull
-    if (efd < 0) {
-        evl_printf("error attaching thread: %s\n", strerror(-efd));
-        // handle error...
-    }
+    // //Check if attachment was succesfull
+    // if (efd < 0) {
+    //     evl_printf("error attaching thread: %s\n", strerror(-efd));
+    //     // handle error...
+    // }
 
     //Set scheduling policy and priority
     attrs.sched_policy = SCHED_FIFO;
@@ -63,7 +69,7 @@ void *start_routine(void *arg){
 
     //Check if caller runs out-of-band
     out_of_band_check=evl_is_inband();
-    evl_printf("Function out-of-band: %B\n", out_of_band_check);
+    printf("Function out-of-band: %B\n", out_of_band_check);
 
     evl_read_clock(EVL_CLOCK_MONOTONIC,&ts); //sets the current time in ts.tv_nsec
     
@@ -83,7 +89,7 @@ void *start_routine(void *arg){
         }       
 
         //sleep until next time of ts
-        int ret = evl_usleep_until(&ts); 
+        int ret = evl_sleep_until(EVL_CLOCK_MONOTONIC,&ts); 
         if (ret !=0){
             perror("clock_nanosleep");
         }
@@ -97,7 +103,7 @@ void *start_routine(void *arg){
         jitter_array[i] = jitter_ns - (LOOPINTERVAL_MS*1000000L);
         iteration=i;
     };
-    evl_detach_thread(); //Detach thread from EVL
+    evl_detach_self(); //Detach thread from EVL
     pthread_exit(NULL); //exit thread
     return NULL;
 }; 
