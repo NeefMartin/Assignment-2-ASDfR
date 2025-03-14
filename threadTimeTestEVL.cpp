@@ -39,14 +39,6 @@ void heavy_computation() {
 
 
 void *start_routine(void *arg){
-    
-    struct timespec ts;             //Create timespec struct that holds time members for nanosleep clock.
-    struct timespec start,end;      //Create timespec for loop timing anaysis
-    long jitter_ns;                 //Initialize jitter variable
-    int efd;                        //Initialize evl thread variable
-    struct evl_sched_attrs attrs;   //Initialize attributes struct
-    bool out_of_band_check;         //Init
-
     //Schedule thread on certain CPU core
     cpu_set_t cpu_set; //Define cpu_set 
     CPU_ZERO(&cpu_set); //Set everything to zero
@@ -54,22 +46,23 @@ void *start_routine(void *arg){
     sched_setaffinity(0,sizeof(cpu_set_t),&cpu_set);
 
     //attach thread to EVL
+    int efd; //Initialize evl thread variable
     efd=evl_attach_self("thread");
 
-    // //Check if attachment was succesfull
-    // if (efd < 0) {
-    //     evl_printf("error attaching thread: %s\n", strerror(-efd));
-    //     // handle error...
-    // }
+    struct timespec ts;             //Create timespec struct that holds time members for nanosleep clock.
+    struct timespec start,end;      //Create timespec for loop timing anaysis
+    long jitter_ns;                 //Initialize jitter variable         
+    struct evl_sched_attrs attrs;   //Initialize attributes struct
+    bool out_of_band_check;         //Init bool
 
     //Set scheduling policy and priority
     attrs.sched_policy = SCHED_FIFO;
-    attrs.sched_priority=90;
+    attrs.sched_priority=99;
     evl_set_schedattr(efd, &attrs);
 
     //Check if caller runs out-of-band
     out_of_band_check=evl_is_inband();
-    printf("Function out-of-band: %B\n", out_of_band_check);
+    //evl_printf("Function in-band: %s\n", out_of_band_check ? "true" : "false");
 
     evl_read_clock(EVL_CLOCK_MONOTONIC,&ts); //sets the current time in ts.tv_nsec
     
@@ -90,9 +83,6 @@ void *start_routine(void *arg){
 
         //sleep until next time of ts
         int ret = evl_sleep_until(EVL_CLOCK_MONOTONIC,&ts); 
-        if (ret !=0){
-            perror("clock_nanosleep");
-        }
         evl_read_clock(EVL_CLOCK_MONOTONIC,&end);
 
         //Calculates the jitter at runtime
